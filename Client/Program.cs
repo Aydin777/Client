@@ -1,21 +1,18 @@
 ﻿using System.Net.Sockets;
 using System.Text;
 
-Console.OutputEncoding = Encoding.UTF8;
 TcpClient client = new TcpClient();
-await client.ConnectAsync("10.1.18.16", 27001);
+await client.ConnectAsync("192.168.0.100", 27001);
 
-NetworkStream stream = client.GetStream();
-StreamReader reader = new StreamReader(stream, Encoding.UTF8);
-StreamWriter writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true };
+var stream = client.GetStream();
+var reader = new StreamReader(stream, Encoding.UTF8);
+var writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true };
 
-Console.Write("Username daxil et: ");
+Console.Write("Username: ");
 string username = Console.ReadLine();
-
 await writer.WriteLineAsync($"LOGIN:{username}");
 
-string response = await reader.ReadLineAsync();
-Console.WriteLine(response);
+Console.WriteLine(await reader.ReadLineAsync());
 
 _ = Task.Run(async () =>
 {
@@ -23,73 +20,39 @@ _ = Task.Run(async () =>
     {
         try
         {
-            string msg = await reader.ReadLineAsync();
+            var msg = await reader.ReadLineAsync();
             if (msg != null)
-                Console.WriteLine($"\n[Incoming]: {msg}");
+                Console.WriteLine($"\n{msg}");
         }
-        catch
-        {
-            break;
-        }
+        catch { break; }
     }
 });
 
 while (true)
 {
-    Console.WriteLine("\n1. Show Users");
-    Console.WriteLine("2. Go Chat");
+    Console.WriteLine("\n1. Users");
+    Console.WriteLine("2. Send");
+    Console.WriteLine("3. Unread");
     Console.Write("Seçim: ");
-    string choice = Console.ReadLine();
 
-    if (choice == "1")
+    var c = Console.ReadLine();
+
+    if (c == "1")
     {
         await writer.WriteLineAsync("SHOW_USERS");
     }
-    else if (choice == "2")
+    else if (c == "2")
     {
-        Console.Write("Kiminle chat: ");
-        string target = Console.ReadLine()?.Trim().ToLower();
+        Console.Write("Kime: ");
+        var to = Console.ReadLine();
 
-        Console.WriteLine("1.Text  2.File  3.Voice");
-        string type = Console.ReadLine();
-        if (type == "1")
-        {
-            Console.Write("Mesaj: ");
-            string msg = Console.ReadLine();
+        Console.Write("Mesaj: ");
+        var msg = Console.ReadLine();
 
-            await writer.WriteLineAsync($"MSG_TEXT:{target}:{msg}");
-        }
-        else if (type == "2")
-        {
-            Console.Write("File path: ");
-            string path = Console.ReadLine();
-
-            if (File.Exists(path))
-            {
-                byte[] fileBytes = File.ReadAllBytes(path);
-                string base64 = Convert.ToBase64String(fileBytes);
-
-                await writer.WriteLineAsync($"MSG_FILE:{target}:{Path.GetFileName(path)}:{base64}");
-            }
-            else
-            {
-                Console.WriteLine("File tapılmadı");
-            }
-        }
-        else if (type == "3")
-        {
-            Console.WriteLine("Voice göndərmək üçün hazır fayl istifadə et (wav/mp3)");
-
-            Console.Write("File path: ");
-            string path = Console.ReadLine();
-
-            if (File.Exists(path))
-            {
-                byte[] fileBytes = File.ReadAllBytes(path);
-                string base64 = Convert.ToBase64String(fileBytes);
-
-                await writer.WriteLineAsync($"MSG_VOICE:{target}:{Path.GetFileName(path)}:{base64}");
-            }
-        }
+        await writer.WriteLineAsync($"MSG_TEXT:{to}:{msg}");
+    }
+    else if (c == "3")
+    {
+        await writer.WriteLineAsync("SHOW_UNREAD");
     }
 }
